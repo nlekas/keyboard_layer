@@ -20,18 +20,18 @@ References:
     - https://pip.pypa.io/en/stable/reference/pip_install
 """
 
+
 import argparse
+import sys
+from argparse import Namespace
 from pathlib import Path
 
-from loguru import logger
-import sys
-import cv2
 import appdirs
-from pkg_resources import resource_filename
+import cv2
+from loguru import logger
+from pynput import keyboard
 
-from keyboard_layer import __version__
-
-from argparse import Namespace
+from keyboard_layer.layer_diagrams.diagram_models import Diagram, Series1
 
 __author__ = "Noah Lekas"
 __copyright__ = "Noah Lekas"
@@ -39,39 +39,69 @@ __license__ = "MIT"
 
 
 def what_layer(n: Namespace):
-    layer_images = {
-        0: resource_filename(__name__, "layer_diagrams/series_1/a9e_series_1_layer_0_pycharm.png"),
-        1: resource_filename(__name__,
-                                  "layer_diagrams/series_1/a9e_series1_layer_0_f_keys.png"),
-        2: resource_filename(__name__,
-                                  "layer_diagrams/series_1/a9e_keyboard_layout_layer_2_num_pad.png"),
-        9: resource_filename(__name__,
-                                  "layer_diagrams/series_1/a9e_keyboard_layout_layer_9_rgb_keys.png"),
-    }
-    image = cv2.imread(layer_images[n.layer])
-    print(layer_images[n.layer])
-    while True:
-        cv2.imshow(f"Layer {n.layer}", image)
-        cv2.waitKey(0)
-        break
-    cv2.destroyAllWindows()
+    layout = Series1()
+    for diagram in layout.diagrams:
+        if diagram.layer == n.layer:
+            logger.info(
+                f"Started Displaying Layout - "
+                f"Name: {diagram.name} - "
+                f"Layer: {diagram.layer} - "
+                f"Path: {diagram.path}"
+            )
+            image = cv2.imread(diagram.path)
+            while True:
+                cv2.imshow(f"{diagram.name}", image)
+                cv2.waitKey(0)
+                break
+            cv2.destroyAllWindows()
+            logger.info(
+                f"Stop Displaying Layout - "
+                f"Name: {diagram.name} - "
+                f"Layer: {diagram.layer} - "
+                f"Path: {diagram.path}"
+            )
 
 
-def bind(n):
-    from pynput import keyboard
-    from pynput.keyboard import Key
+class StopException(Exception):
+    pass
 
-    def on_press(key):
-        # handle pressed keys
-        pass
 
-    def on_release(key):
-        # handle released keys
-        if (key == Key.f):
-            what_layer(Namespace(layer=1))
+def bind(diagram: Diagram):
+    def on_activate_layer_0():
+        logger.info("<ctrl>+<alt>+0 pressed")
+        what_layer(Namespace(layer=0))
 
-    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
-        listener.join()
+    def on_activate_layer_1():
+        logger.info("<ctrl>+<alt>+1 pressed")
+        what_layer(Namespace(layer=1))
+
+    def on_activate_layer_2():
+        logger.info("<ctrl>+<alt>+2 pressed")
+        what_layer(Namespace(layer=2))
+
+    def on_activate_layer_9():
+        logger.info("<ctrl>+<alt>+9 pressed")
+        what_layer(Namespace(layer=9))
+
+    def on_activate_escape():
+        logger.info("<ctrl>+<alt>+e pressed")
+        raise StopException("Ctrl Alt e")
+
+    try:
+        with keyboard.GlobalHotKeys(
+            {
+                "<ctrl>+<alt>+0": on_activate_layer_0,
+                "<ctrl>+<alt>+1": on_activate_layer_1,
+                "<ctrl>+<alt>+2": on_activate_layer_2,
+                "<ctrl>+<alt>+9": on_activate_layer_9,
+                "<ctrl>+<alt>+e": on_activate_escape,
+            }
+        ) as h:
+            h.join()
+    except StopException as e:
+        print(f"{e.args[0]} was pressed. Keybinds stopped")
+        h.stop()
+
 
 def keyboard_layer(args):
     """Parse command line parameters
@@ -88,16 +118,21 @@ def keyboard_layer(args):
     )
     subparsers = parser.add_subparsers(required=True)
 
-    what_layer = subparsers.add_parser("what_layer", help="shows the layout for a specific layer")
+    what_layer = subparsers.add_parser(
+        "what_layer", help="shows the layout for a specific layer"
+    )
     what_layer.add_argument(
-        "-l",
-        "--layer",
-        help="The layer number diagram you want to see.",
-        type=int
+        "-l", "--layer", help="The layer number diagram you want to see.", type=int
     )
     parser.set_defaults(func=what_layer)
 
-    bind_hotkeys = subparsers.add_parser("bind_hotkeys", help="binds the hotkeys to windows for use with the a9e keyboard")
+    bind_hotkeys = subparsers.add_parser(
+        "bind_hotkeys",
+        help="binds the hotkeys to windows for use with the a9e keyboard",
+    )
+    bind_hotkeys.add_argument(
+        "-tf", "--start_stop", help="starts hotkey binds, True starts, False stops"
+    )
     bind_hotkeys.set_defaults(func=bind)
 
     return parser.parse_args(args)
@@ -114,7 +149,9 @@ def add_logging(src: str, log_path: Path) -> None:
 
 def main(args) -> None:
     source = args[1]
-    log_path = appdirs.user_data_dir(appname="A9E Layout Viewer", appauthor="Noah Lekas", version="0.1", roaming=True)
+    log_path = appdirs.user_data_dir(
+        appname="A9E Layout Viewer", appauthor="Noah Lekas", version="0.1", roaming=True
+    )
     add_logging(src=source, log_path=Path(log_path))
     logger.info("start")
     args = keyboard_layer(args[1:])
