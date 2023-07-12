@@ -31,14 +31,14 @@ from pkg_resources import resource_filename
 
 from keyboard_layer import __version__
 
-from PIL import Image
+from argparse import Namespace
 
 __author__ = "Noah Lekas"
 __copyright__ = "Noah Lekas"
 __license__ = "MIT"
 
 
-def what_layer(n):
+def what_layer(n: Namespace):
     layer_images = {
         0: resource_filename(__name__, "layer_diagrams/series_1/a9e_series_1_layer_0_pycharm.png"),
         1: resource_filename(__name__,
@@ -56,7 +56,24 @@ def what_layer(n):
         break
     cv2.destroyAllWindows()
 
-def parse_args(args):
+
+def bind(n):
+    from pynput import keyboard
+    from pynput.keyboard import Key
+
+    def on_press(key):
+        # handle pressed keys
+        pass
+
+    def on_release(key):
+        # handle released keys
+        if (key == Key.f):
+            what_layer(Namespace(layer=1))
+
+    with keyboard.Listener(on_press=on_press, on_release=on_release) as listener:
+        listener.join()
+
+def keyboard_layer(args):
     """Parse command line parameters
 
     Args:
@@ -67,15 +84,21 @@ def parse_args(args):
       :obj:`argparse.Namespace`: command line parameters namespace
     """
     parser = argparse.ArgumentParser(
-        description="Shows layer diagram for the A9E keyboard"
+        description="Shows layer diagrams for the A9E keyboard",
     )
-    parser.add_argument(
+    subparsers = parser.add_subparsers(required=True)
+
+    what_layer = subparsers.add_parser("what_layer", help="shows the layout for a specific layer")
+    what_layer.add_argument(
         "-l",
         "--layer",
         help="The layer number diagram you want to see.",
         type=int
     )
     parser.set_defaults(func=what_layer)
+
+    bind_hotkeys = subparsers.add_parser("bind_hotkeys", help="binds the hotkeys to windows for use with the a9e keyboard")
+    bind_hotkeys.set_defaults(func=bind)
 
     return parser.parse_args(args)
 
@@ -94,7 +117,7 @@ def main(args) -> None:
     log_path = appdirs.user_data_dir(appname="A9E Layout Viewer", appauthor="Noah Lekas", version="0.1", roaming=True)
     add_logging(src=source, log_path=Path(log_path))
     logger.info("start")
-    args = parse_args(args[1:])
+    args = keyboard_layer(args[1:])
     args.func(args)
     logger.info("end")
 
