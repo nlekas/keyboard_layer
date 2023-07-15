@@ -55,3 +55,52 @@ class Series1(KeyboardDiagrams):
                 ),
             ],
         )
+
+
+class Series2(KeyboardDiagrams):
+    def __init__(self):
+        super().__init__(
+            keyboard_name="Atlantis 9e",
+            diagrams=[
+                Diagram(
+                    path=resource_filename(
+                        __name__,
+                        "series_2/a9e_keyboard_layout_series_2_layer_0_pycharm.png",
+                    ),
+                    layer=0,
+                    name="PyCharm",
+                ),
+                Diagram(
+                    path=resource_filename(
+                        __name__,
+                        "series_2/a9e_keyboard_layout_series_2_layer_1_fkeys.png",
+                    ),
+                    layer=1,
+                    name="F-Keys",
+                ),
+                Diagram(
+                    path=resource_filename(
+                        __name__,
+                        "series_2/a9e_keyboard_layout_series_2_layer_2_numkeys.png",
+                    ),
+                    layer=2,
+                    name="Num Pad",
+                ),
+                Diagram(
+                    path=resource_filename(
+                        __name__,
+                        "series_2/a9e_keyboard_layout_series_2_layer_3_fancy_zones.png",
+                    ),
+                    layer=3,
+                    name="Fancy Zones",
+                ),
+                Diagram(
+                    path=resource_filename(
+                        __name__,
+                        "series_2/a9e_keyboard_layout_series_2_layer_9_rgb.png",
+                    ),
+                    layer=9,
+                    name="RGB Controls",
+                ),
+            ],
+        )
