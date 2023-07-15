@@ -24,22 +24,26 @@ References:
 import argparse
 import sys
 from argparse import Namespace
+import time
 from pathlib import Path
 
 import appdirs
 import cv2
 from loguru import logger
-from pynput import keyboard
+from global_hotkeys import *
 
-from keyboard_layer.layer_diagrams.diagram_models import Diagram, Series1
+from keyboard_layer.layer_diagrams.diagram_models import Diagram, Series2
 
 __author__ = "Noah Lekas"
 __copyright__ = "Noah Lekas"
-__license__ = "MIT"
+__license__ = "MIT"11100
+
+
+is_alive: bool = True
 
 
 def what_layer(n: Namespace):
-    layout = Series1()
+    layout = Series2()
     for diagram in layout.diagrams:
         if diagram.layer == n.layer:
             logger.info(
@@ -68,39 +72,84 @@ class StopException(Exception):
 
 def bind(diagram: Diagram):
     def on_activate_layer_0():
-        logger.info("<ctrl>+<alt>+0 pressed")
+        logger.info("f18 + 0 pressed")
         what_layer(Namespace(layer=0))
 
     def on_activate_layer_1():
-        logger.info("<ctrl>+<alt>+1 pressed")
+        logger.info("f18 + 1 pressed")
         what_layer(Namespace(layer=1))
 
     def on_activate_layer_2():
-        logger.info("<ctrl>+<alt>+2 pressed")
+        logger.info("f18 + 2 pressed")
         what_layer(Namespace(layer=2))
 
+    def on_activate_layer_3():
+        logger.info("f18 + 3 pressed")
+        what_layer(Namespace(layer=3))
+
     def on_activate_layer_9():
-        logger.info("<ctrl>+<alt>+9 pressed")
+        logger.info("f18 + 3 pressed")
         what_layer(Namespace(layer=9))
 
     def on_activate_escape():
-        logger.info("<ctrl>+<alt>+e pressed")
-        raise StopException("Ctrl Alt e")
+        logger.info("f18 + q pressed")
+        global is_alive
+        is_alive = False
 
-    try:
-        with keyboard.GlobalHotKeys(
-            {
-                "<ctrl>+<alt>+0": on_activate_layer_0,
-                "<ctrl>+<alt>+1": on_activate_layer_1,
-                "<ctrl>+<alt>+2": on_activate_layer_2,
-                "<ctrl>+<alt>+9": on_activate_layer_9,
-                "<ctrl>+<alt>+e": on_activate_escape,
-            }
-        ) as h:
-            h.join()
-    except StopException as e:
-        print(f"{e.args[0]} was pressed. Keybinds stopped")
-        h.stop()
+    bindings = [
+        {
+            "hotkey": "f18 + 0",
+            "on_press_callback": None,
+            "on_release_callback": on_activate_layer_0,
+            "actuate_on_partial_release": False,
+            # "callback_params": {"test": "testing"},
+        },
+        {
+            "hotkey": "f18 + 1",
+            "on_press_callback": None,
+            "on_release_callback": on_activate_layer_1,
+            "actuate_on_partial_release": False,
+            # "callback_params": {"test": "testing"},
+        },
+        {
+            "hotkey": "f18 + 2",
+            "on_press_callback": None,
+            "on_release_callback": on_activate_layer_2,
+            "actuate_on_partial_release": False,
+            # "callback_params": {"test": "testing"},
+        },
+        {
+            "hotkey": "f18 + 3",
+            "on_press_callback": None,
+            "on_release_callback": on_activate_layer_3,
+            "actuate_on_partial_release": False,
+            # "callback_params": {"test": "testing"},
+        },
+        {
+            "hotkey": "f18 + 9",
+            "on_press_callback": None,
+            "on_release_callback": on_activate_layer_9,
+            "actuate_on_partial_release": False,
+            # "callback_params": {"test": "testing"},
+        },
+        {
+            "hotkey": "f18 + q",
+            "on_press_callback": None,
+            "on_release_callback": on_activate_escape,
+            "actuate_on_partial_release": False,
+            # "callback_params": {"test": "testing"},
+        },
+    ]
+
+    register_hotkeys(bindings=bindings)
+
+    start_checking_hotkeys()
+
+    global is_alive
+    is_alive = True
+
+    while is_alive:
+        time.sleep(0.01)
 
 
 def keyboard_layer(args):
@@ -118,13 +167,13 @@ def keyboard_layer(args):
     )
     subparsers = parser.add_subparsers(required=True)
 
-    what_layer = subparsers.add_parser(
+    what_layer_arg = subparsers.add_parser(
         "what_layer", help="shows the layout for a specific layer"
     )
-    what_layer.add_argument(
+    what_layer_arg.add_argument(
         "-l", "--layer", help="The layer number diagram you want to see.", type=int
     )
-    parser.set_defaults(func=what_layer)
+    what_layer_arg.set_defaults(func=what_layer)
 
     bind_hotkeys = subparsers.add_parser(
         "bind_hotkeys",
